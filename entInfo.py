@@ -5,13 +5,24 @@ import csv
 import httplib
 import time
 import socket
+import cookielib
+import os
+
+def setCookie():
+    cj = cookielib.CookieJar()
+    opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
+
+def setProxy():
+    proxy_handler=urllib2.ProxyHandler({"http":"http://127.0.0.1:8087"})
+    opener=urllib2.build_opener(proxy_handler)
+    urllib2.install_opener(opener)
 
 def getContent(url):
     
     my_headers = {
-           'User-Agent':'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.63 Safari/537.36'
+           'User-Agent':'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/535.7 (KHTML, like Gecko) Chrome/16.0.912.75 Safari/535.7'
            }
-    tout = 50
+    tout = 15
     content = None
     while True:
         try:
@@ -28,6 +39,7 @@ def getContent(url):
             tout += 50
             if(tout > 200):
                 break
+            time.sleep(5)
         except socket.error,e:
             print e
             time.sleep(10)
@@ -41,6 +53,11 @@ def getContent(url):
     return content
     
     
+def mkdir(path):
+    if not os.path.exists(path):
+        os.mkdir(path)
+    else:
+        print '%s exits!'%path
 
 class entInfo:
     
@@ -108,11 +125,10 @@ class entInfo:
             if(i == 0):
                 self.inverstInf.append(t[-4:])
             else:
-                self.inverstInf.append(t)   
+                self.inverstInf.append(t)
         investmoney = self.getInvestDeatail()
-        for i in range(len(self.inverstInf[1:])):
-            self.inverstInf[i+1][-1] += ' '
-            self.inverstInf[i+1].append(investmoney[i])
+        for i in range(len(self.inverstInf)):
+            self.inverstInf[i].append(investmoney[i])
         return self.inverstInf[1:]
 
 
@@ -123,6 +139,8 @@ class search:
     def getLink(self,eid):
         url = 'http://gsxt.gdgs.gov.cn/CheckEntContext/showInfo.html?textfield='+str(eid)
         self.content = getContent(url)
+        while (self.content == None):
+            self.content = getContent(url)
         lp = 'QyxyDetail.aspx\?rid=([A-Za-z0-9]{32})'
         lr = re.compile(lp, re.S)
         self.link = re.findall(lr, self.content)
@@ -280,6 +298,23 @@ def main():
     finvest.close()
     fperson.close()
     ferror.close()
+
+def test():
+    eid = '440301104002425'
+    sear = search()
+    link = sear.getLink(eid)
+    print link
+    info = entInfo(link[0])
+    for e in info.inverstInf:
+        t = ''
+        for k in e:
+            t += k.decode('gbk')+' '
+        print t
     
+def te():
+    mkdir('entInfo')
+    mkdir('log')
+    path='./data'
+    mkdir(path)
 if __name__ == '__main__':
-    main()
+    te()
